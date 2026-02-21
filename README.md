@@ -442,7 +442,7 @@ Using the DevRev SDK MCP server:
 4. Show all methods available in the latest version
 ```
 
-**Expected behavior:** 4 separate tool calls fire, each returning data. If any tool returns an error, check `pm2 logs devrev-mcp` on the server.
+**Expected behavior:** 4 separate tool calls fire, each returning data.
 
 ---
 
