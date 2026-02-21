@@ -1,7 +1,9 @@
 # DevRev SDK MCP Server — Tool Reference & Test Guide
 
 > **Author:** Saurabh Verma
+
 > **Server:** `http://198.135.54.2:3000/sse`
+
 > **SDK Package:** `@devrev/ts-adaas`
 
 This document covers all 7 tools exposed by the DevRev SDK MCP server.
