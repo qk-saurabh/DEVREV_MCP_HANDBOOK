@@ -9,6 +9,7 @@
 This document covers all 7 tools exposed by the DevRev SDK MCP server.
 For each tool you will find: what it does, when to use it, a sample prompt, and a real response.
 
+Demo Video : https://jumpshare.com/s/4jhCegT8ed4vl3MxwhnA
 ---
 
 ## Table of Contents
