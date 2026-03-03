@@ -1,70 +1,61 @@
-# DevRev SDK MCP Server — Tool Reference & Test Guide
+# DevRev SDK MCP Server — Complete Tool Reference
 
 > **Author:** Saurabh Verma
 >
 > **Server:** `http://198.135.54.2:3000/sse`
 >
 > **SDK Package:** `@devrev/ts-adaas`
+> **Tools:** 38 across 9 categories
+> **Transport:** stdio (local) or HTTP/SSE (remote)
+>
+> **Demo Video:** https://jumpshare.com/s/4jhCegT8ed4vl3MxwhnA
 
-This document covers all 7 tools exposed by the DevRev SDK MCP server.
-For each tool you will find: what it does, when to use it, a sample prompt, and a real response.
+This document covers all 38 tools exposed by the DevRev SDK MCP server. For each tool you will find: what it does, when to use it, and sample prompts.
 
-Demo Video : https://jumpshare.com/s/4jhCegT8ed4vl3MxwhnA
 ---
 
 ## Table of Contents
 
 1. [Setup & Configuration](#setup--configuration)
-2. [list_devrev_sdk_versions](#1-list_devrev_sdk_versions)
-3. [get_devrev_sdk_context](#2-get_devrev_sdk_context)
-4. [search_devrev_sdk](#3-search_devrev_sdk)
-5. [get_devrev_examples](#4-get_devrev_examples)
-6. [detect_devrev_sdk_version](#5-detect_devrev_sdk_version)
-7. [get_devrev_migration_guide](#6-get_devrev_migration_guide)
-8. [get_devrev_sdk_version_diff](#7-get_devrev_sdk_version_diff)
-9. [Quick Smoke Test](#quick-smoke-test)
+2. [SDK Management (11 tools)](#sdk-management-11-tools)
+3. [Snap-in Management (4 tools)](#snap-in-management-4-tools)
+4. [Information Query (3 tools)](#information-query-3-tools)
+5. [Development (5 tools)](#development-5-tools)
+6. [Code Review (4 tools)](#code-review-4-tools)
+7. [Data Extraction (3 tools)](#data-extraction-3-tools)
+8. [Testing (3 tools)](#testing-3-tools)
+9. [Deployment (3 tools)](#deployment-3-tools)
+10. [Documentation (2 tools)](#documentation-2-tools)
+11. [End-to-End Workflows](#end-to-end-workflows)
 
 ---
 
 ## Setup & Configuration
 
-### GitHub Token — Why You Need It
+### GitHub Token
 
-The server uses the GitHub API to fetch SDK source code and release data.
-Without a token, GitHub allows only **60 requests/hour** (shared across your IP).
-With a personal token, the limit increases to **5,000 requests/hour**.
+The server uses the GitHub API to fetch SDK source code and release data. Without a token, GitHub allows only **60 requests/hour**. With a personal token: **5,000 requests/hour**.
 
-You have two options:
-- **No token** — use the server's built-in token. Fine for occasional use.
-- **Your own token** — pass it in the URL. Recommended for heavy or team use.
+To generate a token: **GitHub > Settings > Developer settings > Personal access tokens > Tokens (classic)** > no scopes needed for public repos.
 
-To generate a token: **GitHub → Settings → Developer settings → Personal access tokens → Tokens (classic)** → **do not select any scopes** (no scopes required for public repo access) → generate and copy the token.
+### Cursor (stdio mode)
 
----
-
-### Cursor
-
-#### Step 1 — Open MCP settings
-
-Go to **Cursor Settings → MCP** or edit the file directly:
-```
-~/.cursor/mcp.json
-```
-
-#### Step 2 — Add the server
-
-**Without a personal GitHub token** (uses server default):
 ```json
 {
-  "mcpServers": {
+  "mcp.servers": {
     "devrev-sdk": {
-      "url": "http://198.135.54.2:3000/sse"
+      "command": "npx",
+      "args": ["devrev-sdk-mcp"],
+      "env": {
+        "GITHUB_TOKEN": "ghp_yourtoken"
+      }
     }
   }
 }
 ```
 
-**With your own GitHub token** (recommended — higher rate limits):
+### Cursor (HTTP/SSE mode)
+
 ```json
 {
   "mcpServers": {
@@ -74,61 +65,13 @@ Go to **Cursor Settings → MCP** or edit the file directly:
   }
 }
 ```
-
-#### Step 3 — Enable Agent Mode
-
-1. Open a chat in Cursor
-2. Switch to **Agent** mode (dropdown next to the chat input)
-3. The MCP tools will appear automatically — you will see `devrev-sdk` listed under connected tools
-4. Ask any question about the DevRev SDK and the agent will call the right tool automatically
-
----
 
 ### VS Code
 
-#### Step 1 — Install the MCP extension
+Same JSON format as Cursor. Add to VS Code MCP settings or `settings.json`.
 
-Install **MCP Client** from the VS Code marketplace (search `MCP`).
+### Health Check (HTTP mode)
 
-#### Step 2 — Add to VS Code settings
-
-Open **Settings (JSON)** (`Cmd+Shift+P` → `Open User Settings (JSON)`) and add:
-
-**Without a personal GitHub token:**
-```json
-{
-  "mcp.servers": {
-    "devrev-sdk": {
-      "url": "http://198.135.54.2:3000/sse"
-    }
-  }
-}
-```
-
-**With your own GitHub token:**
-```json
-{
-  "mcp.servers": {
-    "devrev-sdk": {
-      "url": "http://198.135.54.2:3000/sse?github_token=ghp_yourtoken"
-    }
-  }
-}
-```
-
-#### Step 3 — Enable Agent Mode (Copilot Chat)
-
-If you are using **GitHub Copilot Chat** with agent mode:
-
-1. Open Copilot Chat panel
-2. Click the **Agent** icon or type `@agent`
-3. The MCP tools are available automatically once the server is configured
-
----
-
-### Health Check
-
-Verify the server is reachable before configuring your client:
 ```bash
 curl http://198.135.54.2:3000/health
 # Expected: {"status":"ok","transport":"http"}
@@ -136,304 +79,438 @@ curl http://198.135.54.2:3000/health
 
 ---
 
-## 1. `list_devrev_sdk_versions`
+## SDK Management (11 tools)
 
-### What it does
-Fetches all published versions of `@devrev/ts-adaas` from the npm registry. Shows version numbers, release dates, and which one is the latest stable release. Useful as a first step before using other tools to know what versions are available.
+### 1. `list_devrev_sdk_versions`
 
-### Features
-- Lists all versions (stable + pre-release)
-- Highlights the latest stable version
-- Shows release dates
-- Use `includePrerelease: true` to include alpha/beta versions
+Lists all published versions of `@devrev/ts-adaas` from npm. Shows version numbers, release dates, and latest stable release.
 
-### When to use
-- Before upgrading the SDK — check what versions exist
-- To find the latest stable version
-- To pick a `fromVersion` / `toVersion` for migration or diff tools
+**When to use:** Before upgrading, to find available versions.
 
-### Sample Prompt
 ```
-List all available versions of the DevRev SDK. Show me which one is the latest stable release.
+List all available versions of the DevRev SDK. Show the 10 most recent stable releases.
 ```
 
-### Sample Response
-> The latest stable version is **1.15.2** (released February 13, 2026). There are 47 total versions available:
-> - **1.15.2** (Latest) — 2026-02-13
-> - **1.15.1** — 2026-02-12
-> - **1.15.0** — 2026-02-02
-> - **1.14.1** — 2026-01-28
-> - **1.14.0** — 2026-01-19
-> - **1.13.3** — 2026-01-12
-> - *(41 more versions...)*
+### 2. `get_devrev_sdk_context`
 
----
+Returns a complete picture of SDK exports: functions, interfaces, types, enums, classes, and examples for a given version. Can filter by topic.
 
-## 2. `get_devrev_sdk_context`
+**When to use:** Understanding what the SDK offers before writing code.
 
-### What it does
-The primary tool. Returns a complete picture of what the SDK offers for a given version: exported functions with full signatures, interfaces, types, enums, classes, and code examples. Can be filtered by topic to return only relevant parts.
-
-### Features
-- Full list of exported methods with parameter types and return types
-- All exported interfaces, types, enums, and classes with their properties
-- Working code examples
-- Filter by `topic` (e.g. `"WorkerAdapter"`, `"webhook"`, `"Mappers"`)
-- Auto-detect version from a project path, or specify a version explicitly
-
-### When to use
-- Understanding what the SDK provides before writing code
-- Looking up method signatures or interface definitions
-- Exploring a specific area of the SDK (e.g. state management, attachment handling)
-
-### Sample Prompts
 ```
-Show me all the methods and types available in the latest version of the @devrev/ts-adaas SDK.
+Show me all methods and types available in DevRev SDK version 1.14.0
 ```
 
 ```
-What does the DevRev SDK provide for working with webhooks? Use the latest version.
+What does the DevRev SDK provide for working with webhooks?
 ```
 
-### Sample Response (abbreviated)
+### 3. `search_devrev_sdk`
 
-**Key Methods:**
-- `createWorkerAdapter` — Creates a worker adapter for handling events
-- `createAdapterState` — Creates adapter state with initial configuration
-- `spawn` — Spawns a new worker thread and manages its lifecycle
-- `processTask` — Processes tasks with timeout handling
-- `translateIncomingEventType` — Maps old event type strings to new `EventType` enum values
-- `getFilesToLoad` — Gets the files to load for the loader
-- `compressGzip` / `decompressGzip` / `parseJsonl` — Compression & parsing utilities
-- `serializeError` / `formatAxiosError` — Error utilities
-- `createEvent`, `createItem`, `createAttachment` — Testing helpers
+Full-text search across SDK methods, types, and examples. Returns results with relevance scores.
 
-**Key Classes:** `WorkerAdapter`, `State`, `Mappers`, `Repo`, `Uploader`, `HTTPClient`, `MockServer`
+**When to use:** Finding a specific method or exploring a concept.
 
-**Key Types:** `AirdropEvent`, `EventType`, `ExtractorEventType`, `LoaderEventType`, `AdapterState<T>`, `SyncMapperRecord`, `NormalizedItem`, `LoaderReport`
-
----
-
-## 3. `search_devrev_sdk`
-
-### What it does
-Full-text search across all SDK methods, types, and examples for a given version. Returns matching items with relevance scores and context snippets. Useful when you know roughly what you're looking for but don't want to browse the entire SDK.
-
-### Features
-- Search by method name, type name, or concept
-- Filter by version and category (`methods`, `types`, `examples`)
-- Returns relevance-ranked results with snippets
-- Default limit: 10 results (max: 50)
-
-### When to use
-- Quickly find a specific method or type by name
-- Explore what the SDK offers around a concept (e.g. `"upload"`, `"retry"`, `"state"`)
-- Discover related APIs before writing a feature
-
-### Sample Prompt
 ```
-Search the DevRev SDK for anything related to "WorkerAdapter".
+Search the DevRev SDK for anything related to "WorkerAdapter"
 ```
 
-### Sample Response (abbreviated)
+### 4. `get_devrev_examples`
 
-> **WorkerAdapter** is the main class for interacting with the Airdrop platform in worker threads. Results include:
->
-> - `WorkerAdapter` class — emit control events, manage state, handle extraction and loading, upload artifacts, stream attachments
-> - `createWorkerAdapter({ event, adapterState, options })` — factory function
-> - `WorkerAdapterInterface` — interface for the factory params
-> - `WorkerAdapterOptions` — `isLocalDevelopment`, `timeout`, `batchSize`, `workerPathOverrides`
-> - `AttachmentsStreamingPoolParams` — takes a `WorkerAdapter` instance
-> - `TaskAdapterInterface` — wraps a `WorkerAdapter`
+Returns copy-paste ready code examples organized by category: webhook, automation, command, keyring, snapkit, event-source, api-call, manifest.
 
----
+**When to use:** Starting a new feature and need a working template.
 
-## 4. `get_devrev_examples`
-
-### What it does
-Returns copy-paste ready code examples organized by category. Each example is a working snippet you can drop into a snap-in project.
-
-### Features
-- 8 categories of examples
-- Version-specific examples
-- Examples include full imports and context
-
-### Available Categories
-
-| Category | Description |
-|----------|-------------|
-| `webhook` | Event handler setup |
-| `automation` | Scheduled task handlers |
-| `command` | Slash command handlers |
-| `keyring` | Secret/credential access |
-| `snapkit` | UI component usage |
-| `event-source` | Custom event configuration |
-| `api-call` | DevRev API usage patterns |
-| `manifest` | Snap-in manifest configuration |
-
-### When to use
-- Starting a new snap-in feature from scratch
-- Need a working template to build on
-- Onboarding new team members to snap-in development
-
-### Sample Prompt
 ```
-Give me a code example for setting up a manifest using the DevRev SDK.
+Show me working code examples for DevRev webhook handlers
 ```
 
-### Sample Response (abbreviated)
+### 5. `detect_devrev_sdk_version`
 
-```yaml
-version: "2"
+Reads package.json, resolves version ranges, and returns the exact SDK version. Supports monorepo workspaces.
 
-name: "My Snap-in"
-description: "A snap-in for syncing external system data with DevRev"
+**When to use:** Checking what SDK version a project uses.
 
-service_account:
-  display_name: "My Snap-in Service Account"
+```
+What version of the @devrev/ts-adaas SDK is this project using?
+```
 
-keyrings:
-  - name: external_system_credentials
-    types:
-      - snap_in_secret
+### 6. `get_devrev_migration_guide`
 
-functions:
-  - name: external_sync_units_extractor
-  - name: data_extractor
-  - name: webhook_handler
+Compares two SDK versions and generates a migration guide with breaking changes, removed APIs, and code examples.
 
-automations:
-  - name: daily_sync
-    schedule:
-      - cron: "0 0 * * *"
+**When to use:** Planning a version upgrade.
 
-webhooks:
-  - name: external_webhook
-    function: webhook_handler
+```
+Generate a migration guide from DevRev SDK v1.12.0 to v1.15.2
+```
+
+### 7. `get_devrev_sdk_version_diff`
+
+Returns a structured diff between two versions: added, removed, and changed APIs.
+
+**When to use:** Quick technical audit of changes between versions.
+
+```
+What changed in the DevRev SDK between version 1.12.0 and 1.15.2?
+```
+
+### 8. `check_sdk_compatibility`
+
+Checks if the project's current SDK version is compatible with a target version.
+
+**When to use:** Before upgrading, to assess compatibility.
+
+```
+Check if my snap-in is compatible with the latest DevRev SDK version
+```
+
+### 9. `get_sdk_methods`
+
+Returns SDK methods with filtering by category and version.
+
+**When to use:** Exploring SDK API surface by category.
+
+```
+Show me all SDK methods available for extraction workers
+```
+
+### 10. `get_event_types`
+
+Returns ADaaS event types for extraction and loading phases.
+
+**When to use:** Understanding what events your snap-in can handle.
+
+```
+What event types are available for extraction and loading phases?
+```
+
+### 11. `get_domain_mapping_schema`
+
+Returns domain mapping JSON schema reference and validation rules.
+
+**When to use:** Building or validating domain_mapping.json.
+
+```
+Show me the domain mapping JSON schema for ADaaS snap-ins
 ```
 
 ---
 
-## 5. `detect_devrev_sdk_version`
+## Snap-in Management (4 tools)
 
-### What it does
-Reads the `package.json` of a local project, resolves version ranges (`^`, `~`, `>=`), and returns the exact SDK version the project is using. Supports monorepo workspaces (npm, yarn, pnpm, Lerna).
+### 12. `list_snapins`
 
-### Features
-- Resolves semver ranges to exact versions
-- Monorepo-aware (scans workspace packages)
-- Returns source file path where version was found
+Scans a directory for snap-in projects (looks for manifest.yaml).
 
-### When to use
-- Quickly check what SDK version a project is on before running other tools
-- Useful in CI scripts or onboarding flows
-
-### Note
-> This feature is currently under development and may be removed in a future version.
-
-### Sample Prompt
 ```
-What version of the DevRev SDK is this project using? Project path: /YOUR_PROJECT_PATH
+Scan the current directory for snap-in projects
+```
+
+### 13. `get_snapin_config`
+
+Reads and parses snap-in configuration: manifest.yaml, domain_mapping.json, package.json.
+
+```
+Read the configuration for the snap-in at ./my-snapin
+```
+
+### 14. `validate_snapin_config`
+
+Validates snap-in configuration against schema rules.
+
+```
+Validate the snap-in configuration at ./my-snapin
+```
+
+### 15. `get_snapin_status`
+
+Gets snap-in project health: config validity, file structure, build status.
+
+```
+What's the health status of the snap-in at ./my-snapin?
 ```
 
 ---
 
-## 6. `get_devrev_migration_guide`
+## Information Query (3 tools)
 
-### What it does
-Compares two SDK versions and generates a human-readable migration guide. Shows breaking changes with before/after code snippets, removed APIs, signature changes, and new features you can adopt.
+### 16. `get_edge_case_patterns`
 
-### Features
-- Identifies removed methods and types
-- Shows exact signature changes (before/after)
-- Lists new helpers you can adopt
-- Step-by-step migration instructions
-- Before/after TypeScript code snippets for every breaking change
+Returns edge case patterns to handle in ADaaS development. Filterable by category and severity.
 
-### When to use
-- Planning a version upgrade
-- Reviewing what breaking changes will affect your codebase
-- Sharing upgrade instructions with the team
-
-### Sample Prompt
 ```
-Generate a migration guide for upgrading the DevRev SDK from version 1.0.0 to the latest version.
+What edge cases should I handle when building an extraction worker?
 ```
 
-### Sample Response (abbreviated)
+### 17. `get_lambda_best_practices`
 
-**From `1.0.0` → `1.15.2`**
+Returns Lambda optimization best practices for snap-ins.
 
-**Removed — must fix:**
-- `getErrorExtractorEventType()` — removed, no replacement
-- `normalizeIssue()`, `normalizeUser()`, `normalizeAttachment()` — removed
-
-**Signature changes — code will not compile until updated:**
-
-```ts
-// spawn — BEFORE (1.0.0)
-spawn({ event, initialState, workerPath, options }): Promise<boolean>
-
-// spawn — AFTER (1.15.2)
-spawn({ event, initialState, workerPath, initialDomainMapping, options, baseWorkerPath }): Promise<void>
+```
+What are the Lambda optimization best practices for snap-ins?
 ```
 
-```ts
-// createWorkerAdapter — BEFORE
-createWorkerAdapter({ event, adapterState, parentPort, options })
+### 18. `get_common_errors`
 
-// createWorkerAdapter — AFTER
-createWorkerAdapter({ event, adapterState, options })  // parentPort removed
+Returns common error patterns with causes and fixes.
+
 ```
-
-**New helpers you can adopt:**
-- `translateIncomingEventType`, `translateExtractorEventType`, `translateLoaderEventType`
-- `serializeError`, `serializeAxiosError`, `getSdkLogContextValue`
-- `getFilesToLoad`, loader report helpers
+What are the most common errors in ADaaS snap-in development?
+```
 
 ---
 
-## 7. `get_devrev_sdk_version_diff`
+## Development (5 tools)
 
-### What it does
-Returns a machine-readable structured diff between two SDK versions. Unlike the migration guide (which is narrative), this gives you exact lists of added, removed, and changed APIs — useful for programmatic processing or a quick technical audit.
+### 19. `generate_project_structure`
 
-### Features
-- Exact count of added / removed / changed items
-- Full method signatures for every change
-- Before/after signatures for changed methods
-- Faster than the migration guide (no narrative generation)
+Generates a complete snap-in project scaffold with manifest, package.json, workers, and config files.
 
-### When to use
-- Technical audit of what changed between two versions
-- Feeding diff data into another process or script
-- Quick check of the scope of changes before deciding whether to upgrade
-
-### Sample Prompt
 ```
-What changed in the DevRev SDK API between version 1.12.3-0 and the latest version? Show added, removed, and changed methods.
+Generate a new ADaaS snap-in project for a Jira connector
 ```
 
-### Sample Response
+### 20. `generate_worker_template`
 
-**Summary (`1.12.3-0` → `1.15.2`):**
-- **Added:** 16 methods
-- **Removed:** 5 methods
-- **Changed:** 2 method signatures
+Generates extraction worker template code for a specific entity type.
 
-**Added (16):** `translateIncomingEventType`, `translateExtractorEventType`, `translateLoaderEventType`, `translateOutgoingEventType`, `getNoScriptEventType`, `createArtifact`, `createAxiosResponse`, `createDownloadUrlResponse`, `createFileBuffer`, `createFileStream`, `callPrivateMethod`, `spyOnPrivateMethod`, `compressGzip`, `decompressGzip`, `parseJsonl`, `downloadToLocal`
+```
+Generate an extraction worker for pulling user data from Jira
+```
 
-**Removed (5):** `getSyncDirection`, `ensureSdkLogContext`, `normalizeIssue`, `normalizeUser`, `normalizeAttachment`
+### 21. `generate_domain_mapping`
 
-**Changed (2):**
-- `spawn` — added `baseWorkerPath` param
-- `createEvent` — all params now optional with defaults; return type unchanged
+Generates domain_mapping.json from entity definitions.
+
+```
+Generate a domain mapping for users and issues entities
+```
+
+### 22. `generate_loading_worker`
+
+Generates loading worker template for bidirectional sync.
+
+```
+Generate a loading worker for pushing issues back to Jira
+```
+
+### 23. `generate_test_template`
+
+Generates test file templates (worker, normalization, api-client).
+
+```
+Generate a test template for the user extraction worker
+```
+
+---
+
+## Code Review (4 tools)
+
+### 24. `analyze_code_quality`
+
+Comprehensive code review producing a structured report with:
+- Overall score (0-100) and rating
+- 9 sections: Project Structure, SDK Integration, Code Quality, Event Routing, Error Handling, State Management, Lambda Constraints, Test Coverage, Domain Mapping
+- Findings with severity (critical/important/minor) and fix suggestions
+- Recommendations
+
+```
+Review the code quality of the snap-in at ./my-snapin
+```
+
+### 25. `detect_anti_patterns`
+
+Scans code for known anti-patterns (missing timeout handlers, incorrect event types, etc.).
+
+```
+Check my snap-in code for anti-patterns
+```
+
+### 26. `suggest_optimizations`
+
+Returns performance optimization suggestions.
+
+```
+Suggest performance optimizations for my snap-in
+```
+
+### 27. `validate_error_handling`
+
+Validates error handling patterns (try/catch coverage, error wrapping, etc.).
+
+```
+Validate the error handling in my snap-in code
+```
+
+---
+
+## Data Extraction (3 tools)
+
+### 28. `extract_metadata`
+
+Extracts metadata from snap-in configuration files.
+
+```
+Extract metadata from the snap-in at ./my-snapin
+```
+
+### 29. `validate_markdown`
+
+Validates markdown content for security issues (HTML injection, script tags).
+
+```
+Validate this markdown for security issues: "# Title <script>alert('xss')</script>"
+```
+
+### 30. `detect_html_injection`
+
+Scans data fields for HTML/script injection risks.
+
+```
+Check these data fields for injection risks: {"name": "<img onerror=alert(1)>"}
+```
+
+---
+
+## Testing (3 tools)
+
+### 31. `run_tests`
+
+Executes the test suite for a snap-in project.
+
+```
+Run the test suite for the snap-in at ./my-snapin
+```
+
+### 32. `generate_test_data`
+
+Generates mock test data for entity types (users, issues, calls, custom). Supports edge cases.
+
+```
+Generate 10 mock user records for testing, include edge cases
+```
+
+### 33. `coverage_report`
+
+Generates test coverage report for a snap-in.
+
+```
+Generate a test coverage report for my snap-in
+```
+
+---
+
+## Deployment (3 tools)
+
+### 34. `validate_deployment`
+
+Runs deployment validation checks: config, structure, dependencies, build.
+
+```
+Validate the deployment readiness of my snap-in
+```
+
+### 35. `build_snapin`
+
+Builds a snap-in project (runs npm build).
+
+```
+Build the snap-in at ./my-snapin
+```
+
+### 36. `check_lambda_constraints`
+
+Checks snap-in against AWS Lambda constraints: bundle size, dependencies, memory patterns, timeout usage.
+
+```
+Check if my snap-in meets AWS Lambda constraints
+```
+
+---
+
+## Documentation (2 tools)
+
+### 37. `generate_readme`
+
+Generates README.md for a snap-in project with sections for overview, setup, configuration, domain mapping, project structure, and development commands.
+
+```
+Generate a README.md for the snap-in at ./my-snapin
+```
+
+### 38. `generate_marketplace_doc`
+
+Generates DevRev marketplace documentation with features, data synced table, setup instructions, and technical details.
+
+```
+Generate marketplace documentation for "Jira Connector" snap-in
+```
+
+---
+
+## End-to-End Workflows
+
+### Workflow 1: SDK Upgrade
+
+```
+1. "What version of the DevRev SDK is this project using?"
+   → detect_devrev_sdk_version
+2. "What is the latest stable version?"
+   → list_devrev_sdk_versions
+3. "Compare my version with the latest"
+   → get_devrev_sdk_version_diff
+4. "Generate a migration guide"
+   → get_devrev_migration_guide
+5. "Show me the methods available in the latest version"
+   → get_devrev_sdk_context
+6. "Now upgrade my project"
+   → AI uses all context to update code
+```
+
+### Workflow 2: New Snap-in Development
+
+```
+1. "Generate a new snap-in for a Salesforce connector"
+   → generate_project_structure
+2. "Generate extraction workers for contacts and deals"
+   → generate_worker_template (x2)
+3. "Generate domain mapping"
+   → generate_domain_mapping
+4. "Generate loading workers for bidirectional sync"
+   → generate_loading_worker (x2)
+5. "Generate tests"
+   → generate_test_template
+6. "Review the code quality"
+   → analyze_code_quality
+```
+
+### Workflow 3: Pre-Deployment Check
+
+```
+1. "Validate snap-in config" → validate_snapin_config
+2. "Check Lambda constraints" → check_lambda_constraints
+3. "Run tests" → run_tests
+4. "Validate deployment" → validate_deployment
+5. "Generate README" → generate_readme
+6. "Generate marketplace docs" → generate_marketplace_doc
+```
+
+### Workflow 4: Code Review
+
+```
+1. "Analyze code quality" → analyze_code_quality (score + report)
+2. "Check for anti-patterns" → detect_anti_patterns
+3. "Suggest optimizations" → suggest_optimizations
+4. "Validate error handling" → validate_error_handling
+5. "Check common errors" → get_common_errors
+```
 
 ---
 
 ## Quick Smoke Test
 
-Paste this into Cursor to hit 4 tools in one go and verify the server is fully working:
+Paste this into Cursor to test multiple tools at once:
 
 ```
 Using the DevRev SDK MCP server:
@@ -441,22 +518,24 @@ Using the DevRev SDK MCP server:
 2. Search for "AirdropEvent" in the latest version
 3. Get a webhook code example
 4. Show all methods available in the latest version
+5. What edge cases should I handle for extraction workers?
+6. What are common ADaaS development errors?
 ```
 
-**Expected behavior:** 4 separate tool calls fire, each returning data.
+Expected: 6 tool calls fire, each returning structured data.
 
 ---
 
-## Connection Details
+## Response Format
 
-| Setting | Value |
-|---------|-------|
-| Server URL | `http://198.135.54.2:3000/sse` |
-| Health check | `http://198.135.54.2:3000/health` |
-| With personal GitHub token | `http://198.135.54.2:3000/sse?github_token=YOUR_TOKEN` |
-| GitHub rate limit (no token) | 60 requests / hour |
-| GitHub rate limit (with token) | 5,000 requests / hour |
+Tool responses use **TOON (Token-Oriented Object Notation)** encoding for array-heavy responses, reducing token consumption by 39-60%. Responses with TOON-encoded fields include a `_format: "toon"` marker. Non-array responses use standard JSON.
 
----
+## Troubleshooting
 
-*Maintained by Saurabh Verma*
+| Issue | Solution |
+|-------|----------|
+| AI says "tool not found" | Restart IDE after adding MCP config |
+| Empty methods/types returned | Set `GITHUB_TOKEN` for higher rate limits |
+| "Version not found" error | Use `list_devrev_sdk_versions` to check available versions |
+| Slow first response | Normal — first call fetches from APIs. Subsequent calls use cache (<100ms) |
+| Version detection returns range | Normal when exact version can't be resolved; range is used as fallback |
