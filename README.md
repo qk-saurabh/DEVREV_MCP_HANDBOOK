@@ -5,12 +5,12 @@
 > **Server:** `http://198.135.54.2:3000/sse`
 >
 > **SDK Package:** `@devrev/ts-adaas`
-> **Tools:** 38 across 9 categories
+> **Tools:** 41 across 9 categories
 > **Transport:** stdio (local) or HTTP/SSE (remote)
 >
 > **Demo Video:** https://jumpshare.com/s/4jhCegT8ed4vl3MxwhnA
 
-This document covers all 38 tools exposed by the DevRev SDK MCP server. For each tool you will find: what it does, when to use it, and sample prompts.
+This document covers all 41 tools exposed by the DevRev SDK MCP server. For each tool you will find: what it does, when to use it, and sample prompts.
 
 ---
 
@@ -18,14 +18,14 @@ This document covers all 38 tools exposed by the DevRev SDK MCP server. For each
 
 1. [Setup & Configuration](#setup--configuration)
 2. [SDK Management (11 tools)](#sdk-management-11-tools)
-3. [Snap-in Management (4 tools)](#snap-in-management-4-tools)
+3. [Snap-in Management (3 tools)](#snap-in-management-3-tools)
 4. [Information Query (3 tools)](#information-query-3-tools)
-5. [Development (5 tools)](#development-5-tools)
+5. [Development (8 tools)](#development-8-tools)
 6. [Code Review (4 tools)](#code-review-4-tools)
-7. [Data Extraction (3 tools)](#data-extraction-3-tools)
-8. [Testing (3 tools)](#testing-3-tools)
+7. [Content Validation (2 tools)](#content-validation-2-tools)
+8. [Testing (4 tools)](#testing-4-tools)
 9. [Deployment (3 tools)](#deployment-3-tools)
-10. [Documentation (2 tools)](#documentation-2-tools)
+10. [Documentation (3 tools)](#documentation-3-tools)
 11. [End-to-End Workflows](#end-to-end-workflows)
 
 ---
@@ -197,7 +197,7 @@ Show me the domain mapping JSON schema for ADaaS snap-ins
 
 ---
 
-## Snap-in Management (4 tools)
+## Snap-in Management (3 tools)
 
 ### 12. `list_snapins`
 
@@ -215,15 +215,7 @@ Reads and parses snap-in configuration: manifest.yaml, domain_mapping.json, pack
 Read the configuration for the snap-in at ./my-snapin
 ```
 
-### 14. `validate_snapin_config`
-
-Validates snap-in configuration against schema rules.
-
-```
-Validate the snap-in configuration at ./my-snapin
-```
-
-### 15. `get_snapin_status`
+### 14. `get_snapin_status`
 
 Gets snap-in project health: config validity, file structure, build status.
 
@@ -235,7 +227,7 @@ What's the health status of the snap-in at ./my-snapin?
 
 ## Information Query (3 tools)
 
-### 16. `get_edge_case_patterns`
+### 15. `get_edge_case_patterns`
 
 Returns edge case patterns to handle in ADaaS development. Filterable by category and severity.
 
@@ -243,7 +235,7 @@ Returns edge case patterns to handle in ADaaS development. Filterable by categor
 What edge cases should I handle when building an extraction worker?
 ```
 
-### 17. `get_lambda_best_practices`
+### 16. `get_lambda_best_practices`
 
 Returns Lambda optimization best practices for snap-ins.
 
@@ -251,7 +243,7 @@ Returns Lambda optimization best practices for snap-ins.
 What are the Lambda optimization best practices for snap-ins?
 ```
 
-### 18. `get_common_errors`
+### 17. `get_common_errors`
 
 Returns common error patterns with causes and fixes.
 
@@ -261,17 +253,9 @@ What are the most common errors in ADaaS snap-in development?
 
 ---
 
-## Development (5 tools)
+## Development (8 tools)
 
-### 19. `generate_project_structure`
-
-Generates a complete snap-in project scaffold with manifest, package.json, workers, and config files.
-
-```
-Generate a new ADaaS snap-in project for a Jira connector
-```
-
-### 20. `generate_worker_template`
+### 18. `generate_worker_template`
 
 Generates extraction worker template code for a specific entity type.
 
@@ -279,7 +263,7 @@ Generates extraction worker template code for a specific entity type.
 Generate an extraction worker for pulling user data from Jira
 ```
 
-### 21. `generate_domain_mapping`
+### 19. `generate_domain_mapping`
 
 Generates domain_mapping.json from entity definitions.
 
@@ -287,7 +271,7 @@ Generates domain_mapping.json from entity definitions.
 Generate a domain mapping for users and issues entities
 ```
 
-### 22. `generate_loading_worker`
+### 20. `generate_loading_worker`
 
 Generates loading worker template for bidirectional sync.
 
@@ -295,7 +279,7 @@ Generates loading worker template for bidirectional sync.
 Generate a loading worker for pushing issues back to Jira
 ```
 
-### 23. `generate_test_template`
+### 21. `generate_test_template`
 
 Generates test file templates (worker, normalization, api-client).
 
@@ -303,11 +287,71 @@ Generates test file templates (worker, normalization, api-client).
 Generate a test template for the user extraction worker
 ```
 
+### 22. `create_devrev_snapin` (scaffold)
+
+Generates a complete, production-ready ADaaS snap-in scaffold from a PRD/TDD document. Creates 20+ files including manifest.yaml v2, all extraction workers with processTask/onTimeout, domain mapping v0.2.0, state management, constants, API client, and test fixtures. Supports extraction_only and bidirectional sync with PAT/OAuth/API key auth. Clones template repo or generates in-memory, rebrands all references, crawls API docs from the PRD.
+
+**When to use:** Starting a new snap-in from scratch or from a PRD. This is the FIRST tool to call. After this, follow the recommended workflow: crawl_api_docs → cleanup_scaffold → validate_snapin_scaffold → analyze_code_quality → run_quality_checks.
+
+**Input:** `snapin_name` (kebab-case), `prd_or_tdd` (full PRD text, min 10 chars), optional `output_directory`, optional `sync_direction`
+
+```
+Build a new snap-in for Zoho Desk that extracts users, tickets, and contacts using PAT auth
+```
+
+```
+Scaffold a bidirectional Gong connector with OAuth auth for users and calls
+```
+
+### 23. `validate_snapin_scaffold`
+
+Validates a snap-in project directory against production best practices. Checks manifest v2, workers (processTask + onTimeout), EventType compatibility, domain mapping v0.2.0, fallback types, SDK version, state management, and security. Returns score (0-100) with critical/important/minor issue breakdown.
+
+**When to use:** After generating a scaffold, after `devrev snap_in_version init`, or during code review to ensure snap-in quality.
+
+**Input:** `snapin_path` (directory path), optional `strict_mode` (default: true)
+
+```
+Validate the snap-in at ./my-snapin against best practices
+```
+
+### 24. `crawl_api_docs`
+
+Crawls API documentation URLs and extracts structured information: endpoints, object schemas, authentication methods, pagination patterns, rate limits, and webhook support. Supports OpenAPI/Swagger specs, HTML docs, and raw JSON. Tracks entity coverage — shows which of your target entities have API endpoint support.
+
+**When to use:** Before or after `create_devrev_snapin` to gather deep API knowledge about the target application. Especially useful when the PRD contains API doc URLs. Returns actionable recommendations for implementation.
+
+**Input:** `urls` (array of API doc URLs), `target_application` (e.g., "Asana"), optional `focus_entities` (e.g., ["tasks", "users"]), optional `include_raw_content`
+
+```
+Crawl the Asana API docs and tell me about their endpoints, auth, pagination, and rate limits
+```
+
+```
+Analyze the Jira API documentation at these URLs and focus on issues, projects, and users
+```
+
+### 25. `cleanup_scaffold`
+
+Cleans up a scaffolded snap-in by removing leftover template references (Asana, YourApp, etc.), replacing them with the target application name, removing empty files, updating SDK to latest version, and detecting leftover TODO markers.
+
+**When to use:** After `create_devrev_snapin` and any manual edits to ensure the project is clean. Supports `dry_run` mode to preview changes before applying.
+
+**Input:** `snapin_path`, `target_application` (e.g., "Jira"), optional `dry_run`, optional `fix_sdk_version`
+
+```
+Clean up the scaffolded snap-in and replace all template references with Jira
+```
+
+```
+Dry-run cleanup on my snap-in to see what template leftovers remain
+```
+
 ---
 
 ## Code Review (4 tools)
 
-### 24. `analyze_code_quality`
+### 26. `analyze_code_quality`
 
 Comprehensive code review producing a structured report with:
 - Overall score (0-100) and rating
@@ -319,7 +363,7 @@ Comprehensive code review producing a structured report with:
 Review the code quality of the snap-in at ./my-snapin
 ```
 
-### 25. `detect_anti_patterns`
+### 27. `detect_anti_patterns`
 
 Scans code for known anti-patterns (missing timeout handlers, incorrect event types, etc.).
 
@@ -327,7 +371,7 @@ Scans code for known anti-patterns (missing timeout handlers, incorrect event ty
 Check my snap-in code for anti-patterns
 ```
 
-### 26. `suggest_optimizations`
+### 28. `suggest_optimizations`
 
 Returns performance optimization suggestions.
 
@@ -335,7 +379,7 @@ Returns performance optimization suggestions.
 Suggest performance optimizations for my snap-in
 ```
 
-### 27. `validate_error_handling`
+### 29. `validate_error_handling`
 
 Validates error handling patterns (try/catch coverage, error wrapping, etc.).
 
@@ -345,17 +389,9 @@ Validate the error handling in my snap-in code
 
 ---
 
-## Data Extraction (3 tools)
+## Content Validation (2 tools)
 
-### 28. `extract_metadata`
-
-Extracts metadata from snap-in configuration files.
-
-```
-Extract metadata from the snap-in at ./my-snapin
-```
-
-### 29. `validate_markdown`
+### 30. `validate_markdown`
 
 Validates markdown content for security issues (HTML injection, script tags).
 
@@ -363,7 +399,7 @@ Validates markdown content for security issues (HTML injection, script tags).
 Validate this markdown for security issues: "# Title <script>alert('xss')</script>"
 ```
 
-### 30. `detect_html_injection`
+### 31. `detect_html_injection`
 
 Scans data fields for HTML/script injection risks.
 
@@ -373,9 +409,9 @@ Check these data fields for injection risks: {"name": "<img onerror=alert(1)>"}
 
 ---
 
-## Testing (3 tools)
+## Testing (4 tools)
 
-### 31. `run_tests`
+### 32. `run_tests`
 
 Executes the test suite for a snap-in project.
 
@@ -383,7 +419,7 @@ Executes the test suite for a snap-in project.
 Run the test suite for the snap-in at ./my-snapin
 ```
 
-### 32. `generate_test_data`
+### 33. `generate_test_data`
 
 Generates mock test data for entity types (users, issues, calls, custom). Supports edge cases.
 
@@ -391,7 +427,7 @@ Generates mock test data for entity types (users, issues, calls, custom). Suppor
 Generate 10 mock user records for testing, include edge cases
 ```
 
-### 33. `coverage_report`
+### 34. `coverage_report`
 
 Generates test coverage report for a snap-in.
 
@@ -399,11 +435,27 @@ Generates test coverage report for a snap-in.
 Generate a test coverage report for my snap-in
 ```
 
+### 35. `run_quality_checks`
+
+Runs ALL quality gates in one call: npm install → TypeScript build → unit tests (vitest) → ESLint lint → npm audit. Returns a unified pass/fail report with blocking issues. Steps run sequentially; tests are skipped if build fails. Each step can be individually skipped.
+
+**When to use:** As the final quality gate after `create_devrev_snapin` or after any code changes. Replaces the need to call `build_snapin`, `run_tests`, and lint separately.
+
+**Input:** `snapin_path`, optional `skip_install`, `skip_tests`, `skip_lint`, `skip_audit`, `timeout_ms`
+
+```
+Run all quality checks on my snap-in (build, test, lint, audit)
+```
+
+```
+Run quality checks but skip tests since I haven't written any yet
+```
+
 ---
 
 ## Deployment (3 tools)
 
-### 34. `validate_deployment`
+### 36. `validate_deployment`
 
 Runs deployment validation checks: config, structure, dependencies, build.
 
@@ -411,7 +463,7 @@ Runs deployment validation checks: config, structure, dependencies, build.
 Validate the deployment readiness of my snap-in
 ```
 
-### 35. `build_snapin`
+### 37. `build_snapin`
 
 Builds a snap-in project (runs npm build).
 
@@ -419,7 +471,7 @@ Builds a snap-in project (runs npm build).
 Build the snap-in at ./my-snapin
 ```
 
-### 36. `check_lambda_constraints`
+### 38. `check_lambda_constraints`
 
 Checks snap-in against AWS Lambda constraints: bundle size, dependencies, memory patterns, timeout usage.
 
@@ -429,9 +481,9 @@ Check if my snap-in meets AWS Lambda constraints
 
 ---
 
-## Documentation (2 tools)
+## Documentation (3 tools)
 
-### 37. `generate_readme`
+### 39. `generate_readme`
 
 Generates README.md for a snap-in project with sections for overview, setup, configuration, domain mapping, project structure, and development commands.
 
@@ -439,12 +491,20 @@ Generates README.md for a snap-in project with sections for overview, setup, con
 Generate a README.md for the snap-in at ./my-snapin
 ```
 
-### 38. `generate_marketplace_doc`
+### 40. `generate_marketplace_doc`
 
 Generates DevRev marketplace documentation with features, data synced table, setup instructions, and technical details.
 
 ```
 Generate marketplace documentation for "Jira Connector" snap-in
+```
+
+### 41. `generate_architecture_doc`
+
+Generates architecture documentation for a snap-in project, covering system design, data flow, worker responsibilities, and integration patterns.
+
+```
+Generate architecture documentation for the snap-in at ./my-snapin
 ```
 
 ---
@@ -468,29 +528,76 @@ Generate marketplace documentation for "Jira Connector" snap-in
    → AI uses all context to update code
 ```
 
-### Workflow 2: New Snap-in Development
+### Workflow 2: New Snap-in from PRD (One Command in Cursor)
+
+This is the primary workflow. Give Cursor a single prompt with your PRD and it chains all tools automatically:
 
 ```
-1. "Generate a new snap-in for a Salesforce connector"
-   → generate_project_structure
-2. "Generate extraction workers for contacts and deals"
+Build me a Salesforce snap-in from this PRD:
+
+Target: Salesforce
+Entities: contacts, accounts, deals
+Auth: OAuth 2.0
+API docs: https://developer.salesforce.com/docs/atlas.en-us.api_rest.meta/api_rest/
+Sync: extraction only
+```
+
+**Cursor agent will automatically chain these tools:**
+
+```
+Step 1: create_devrev_snapin
+   → Parses PRD, generates 20+ production-ready files
+   → Clones template, rebrands, crawls API docs from PRD
+
+Step 2: crawl_api_docs  (if API docs URL in PRD)
+   → Deep crawl of Salesforce API docs
+   → Extracts endpoints, schemas, pagination, rate limits
+   → Returns entity coverage + recommendations
+
+Step 3: cleanup_scaffold
+   → Removes leftover template references
+   → Updates SDK to latest version
+   → Fixes naming conventions
+
+Step 4: validate_snapin_scaffold
+   → Checks 12+ production rules (score 0-100)
+   → Lists critical/important/minor issues
+
+Step 5: Cursor edits files to fix issues from Step 4
+
+Step 6: analyze_code_quality + detect_anti_patterns
+   → Deep code review with 10 sections
+   → Anti-pattern detection across 22 known patterns
+
+Step 7: run_quality_checks
+   → npm install → TypeScript build → vitest → ESLint → npm audit
+   → Unified pass/fail report
+
+Step 8: generate_readme + generate_marketplace_doc
+   → Documentation ready for deployment
+```
+
+### Workflow 2b: Incremental Snap-in Development
+
+```
+1. "Generate extraction workers for contacts and deals"
    → generate_worker_template (x2)
-3. "Generate domain mapping"
+2. "Generate domain mapping"
    → generate_domain_mapping
-4. "Generate loading workers for bidirectional sync"
+3. "Generate loading workers for bidirectional sync"
    → generate_loading_worker (x2)
-5. "Generate tests"
+4. "Generate tests"
    → generate_test_template
-6. "Review the code quality"
+5. "Review the code quality"
    → analyze_code_quality
 ```
 
 ### Workflow 3: Pre-Deployment Check
 
 ```
-1. "Validate snap-in config" → validate_snapin_config
-2. "Check Lambda constraints" → check_lambda_constraints
-3. "Run tests" → run_tests
+1. "Run all quality checks" → run_quality_checks (build + test + lint + audit in one call)
+2. "Validate snap-in scaffold" → validate_snapin_scaffold
+3. "Check Lambda constraints" → check_lambda_constraints
 4. "Validate deployment" → validate_deployment
 5. "Generate README" → generate_readme
 6. "Generate marketplace docs" → generate_marketplace_doc
